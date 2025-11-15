@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import RecentPosts from "@/components/recent-posts";
 
 export default function Home() {
   return (
@@ -193,8 +194,8 @@ export default function Home() {
               sustainable future.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
-              <li>• $10M+ funds raised to date</li>
-              <li>• 500+ community investors</li>
+              <li>• $1.1M+ funds raised to date</li>
+              <li>• 30+ community investors</li>
               <li>• Transparent investment process</li>
             </ul>
           </div>
@@ -299,6 +300,9 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* Recent Blog Posts Section */}
+      <RecentPosts />
 
       {/* CTA Section */}
       <section className="text-center space-y-8 py-16 bg-muted/30 rounded-3xl">

@@ -103,14 +103,14 @@ export async function fetchPublishedPosts() {
         {
           property: "Work Tags",
           multi_select: {
-            contains: "climatefair",
+            contains: "ClimateFair",
           },
         },
       ],
     },
     sorts: [
       {
-        property: "End date",
+        property: "createdAt",
         direction: "descending",
       },
     ],
@@ -135,18 +135,58 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
     const properties = page.properties as any;
 
     const mdBlocks = await n2m.pageToMarkdown(pageId);
-    const { parent: contentString } = n2m.toMarkdownString(mdBlocks);
+    const markdownResult = n2m.toMarkdownString(mdBlocks);
+    // Handle different return types from toMarkdownString
+    const contentString =
+      typeof markdownResult === "string"
+        ? markdownResult
+        : markdownResult?.parent || "";
+
+    // Find the title property - try common names
+    let titleProperty = null;
+    const titlePropertyNames = ["Project name", "Title", "Name", "Post Title"];
+
+    for (const propName of titlePropertyNames) {
+      if (
+        properties[propName]?.type === "title" &&
+        properties[propName].title?.length > 0
+      ) {
+        titleProperty = properties[propName];
+        break;
+      }
+    }
+
+    // If no title property found, log available properties for debugging
+    if (!titleProperty) {
+      console.warn(
+        `No title property found for page ${pageId}. Available properties:`,
+        Object.keys(properties)
+      );
+      // Try to find any title-type property
+      for (const [key, value] of Object.entries(properties)) {
+        if ((value as any)?.type === "title") {
+          titleProperty = value;
+          console.warn(`Using property "${key}" as title`);
+          break;
+        }
+      }
+    }
+
+    const titleText = titleProperty?.title?.[0]?.plain_text || "Untitled";
 
     // Use Prioritization Note as description if available, otherwise first paragraph
     const prioritizationNote =
       properties["Prioritization Note"]?.rich_text?.[0]?.plain_text || "";
     let description = prioritizationNote;
 
-    if (!description) {
+    if (!description && contentString) {
       // Fallback to first paragraph of content
-      const paragraphs = contentString
-        .split("\n")
-        .filter((line: string) => line.trim().length > 0);
+      const paragraphs =
+        typeof contentString === "string"
+          ? contentString
+              .split("\n")
+              .filter((line: string) => line.trim().length > 0)
+          : [];
       const firstParagraph = paragraphs[0] || "";
       description =
         firstParagraph.slice(0, 280) +
@@ -154,9 +194,9 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
     }
     const post: Post = {
       id: page.id,
-      title: properties["Project name"].title[0]?.plain_text || "Untitled",
+      title: titleText,
       slug:
-        properties["Project name"].title[0]?.plain_text
+        titleText
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-") // Replace any non-alphanumeric chars with dash
           .replace(/^-+|-+$/g, "") || // Remove leading/trailing dashes
@@ -167,10 +207,7 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
         extractFirstImage(contentString) ||
         undefined,
       description,
-      date:
-        properties["End date"]?.date?.start ||
-        properties["Start date"]?.date?.start ||
-        new Date().toISOString(),
+      date: properties["createdAt"]?.date?.start || new Date().toISOString(),
       content: contentString,
       author:
         properties.createdBy?.name || properties.Assignees?.people[0]?.name,

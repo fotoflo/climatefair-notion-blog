@@ -6,9 +6,22 @@ const envPath = path.join(process.cwd(), ".env.local");
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, "utf8");
   envContent.split("\n").forEach((line) => {
-    const [key, ...valueParts] = line.split("=");
+    // Skip comments and empty lines
+    const trimmedLine = line.trim();
+    if (!trimmedLine || trimmedLine.startsWith("#")) {
+      return;
+    }
+    
+    const [key, ...valueParts] = trimmedLine.split("=");
     if (key && valueParts.length > 0) {
-      const value = valueParts.join("=").trim();
+      let value = valueParts.join("=").trim();
+      // Remove surrounding quotes (single or double)
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
       process.env[key.trim()] = value;
     }
   });
@@ -22,7 +35,19 @@ async function cachePosts() {
     );
 
     console.log("Fetching posts from Notion...");
-    console.log("Notion API Key:", process.env.NOTION_TOKEN);
+    const token = process.env.NOTION_TOKEN || process.env.NOTION_API_KEY;
+    const databaseId = process.env.NOTION_DATABASE_ID;
+    
+    if (!token) {
+      throw new Error("NOTION_TOKEN or NOTION_API_KEY is not set in .env.local");
+    }
+    if (!databaseId) {
+      throw new Error("NOTION_DATABASE_ID is not set in .env.local");
+    }
+    
+    console.log("Database ID:", databaseId);
+    console.log("Token (first 10 chars):", token.substring(0, 10) + "...");
+    
     const posts = await fetchPublishedPosts();
 
     const allPosts = [];
@@ -38,8 +63,25 @@ async function cachePosts() {
     fs.writeFileSync(cachePath, JSON.stringify(allPosts, null, 2));
 
     console.log(`Successfully cached ${allPosts.length} posts.`);
-  } catch (error) {
-    console.error("Error caching posts:", error);
+  } catch (error: any) {
+    console.error("\n❌ Error caching posts:");
+    console.error(error.message || error);
+    
+    if (error.code === "unauthorized") {
+      console.error("\n💡 Troubleshooting tips:");
+      console.error("1. Check that your NOTION_TOKEN in .env.local doesn't have quotes around it");
+      console.error("2. Verify the token is correct in Notion: https://www.notion.so/my-integrations");
+      console.error("3. Make sure the integration has access to the database:");
+      console.error("   - Open the database in Notion");
+      console.error("   - Click '...' menu → 'Connections' → Add your integration");
+      console.error("4. Verify the database ID is correct:", process.env.NOTION_DATABASE_ID);
+    } else if (error.code === "object_not_found") {
+      console.error("\n💡 Troubleshooting tips:");
+      console.error("1. Verify the NOTION_DATABASE_ID is correct");
+      console.error("2. Make sure the integration has access to the database");
+      console.error("3. Check that the database exists in the same workspace as the integration");
+    }
+    
     process.exit(1);
   }
 }
