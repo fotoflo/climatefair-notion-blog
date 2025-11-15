@@ -16,13 +16,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://climatefair.co";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "ClimateFair - Climate Business Sourcing, Franchising and Crowd Funding",
+    default:
+      "ClimateFair - Climate Business Sourcing, Franchising and Crowd Funding",
     template: `%s | ClimateFair`,
   },
   description:
     "Empowering climate businesses through strategic sourcing, franchise opportunities, and innovative crowd funding solutions. Join us in building a sustainable future.",
   openGraph: {
-    title: "ClimateFair - Climate Business Sourcing, Franchising and Crowd Funding",
+    title:
+      "ClimateFair - Climate Business Sourcing, Franchising and Crowd Funding",
     description:
       "Empowering climate businesses through strategic sourcing, franchise opportunities, and innovative crowd funding solutions. Join us in building a sustainable future.",
     url: siteUrl,
@@ -40,7 +42,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ClimateFair - Climate Business Sourcing, Franchising and Crowd Funding",
+    title:
+      "ClimateFair - Climate Business Sourcing, Franchising and Crowd Funding",
     description:
       "Empowering climate businesses through strategic sourcing, franchise opportunities, and innovative crowd funding solutions.",
     images: [`${siteUrl}/Logo.png`],
@@ -78,8 +81,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="light">
       <body className={`${inter.variable} font-sans`}>
-        {/* Google Analytics */}
-        {process.env.NEXT_PUBLIC_GOOGLE_GTAG_ID ? (
+        {/* Google tag (gtag.js) */}
+        {process.env.NEXT_PUBLIC_GOOGLE_GTAG_ID && (
           <>
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_GTAG_ID}`}
@@ -89,12 +92,12 @@ export default function RootLayout({
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
-                gtag("js", new Date());
-                gtag("config", "${process.env.NEXT_PUBLIC_GOOGLE_GTAG_ID}");
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_GTAG_ID}');
               `}
             </Script>
           </>
-        ) : null}
+        )}
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
