@@ -48,3 +48,6 @@ next-env.d.ts
 # cache
 /cache
 .env*.local
+
+# temporary files
+/public/temp
