@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm run cache:posts && next build",
+  "devCommand": "next dev",
+  "installCommand": "pnpm install"
+}
