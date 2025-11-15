@@ -52,9 +52,9 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             <div className="flex items-center space-x-6">
               <Link
-                href="#services"
+                href="/services"
                 className="text-flexbike-teal hover:text-flexbike-teal/80 dark:text-flexbike-teal dark:hover:text-flexbike-teal/90 font-medium transition-colors"
-                onClick={() => handleNavClick("Services", "#services")}
+                onClick={() => handleNavClick("Services", "/services")}
               >
                 Services
               </Link>
@@ -123,12 +123,12 @@ export default function Layout({ children }: LayoutProps) {
                 </li>
                 <li>
                   <Link
-                    href="#services"
+                    href="/services"
                     className="text-muted-foreground hover:text-flexbike-teal dark:hover:text-flexbike-teal/90 text-sm transition-colors"
                     onClick={() =>
                       handleNavClick(
                         "Footer Services",
-                        "#services"
+                        "/services"
                       )
                     }
                   >
