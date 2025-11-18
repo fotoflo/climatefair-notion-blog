@@ -260,3 +260,4 @@ That's it! The blog will now pull posts from the ClimateFair database. 🎉
 **Last Updated**: Based on current codebase configuration
 **For Developers**: See `src/lib/notion.ts` for database query logic
 
+
