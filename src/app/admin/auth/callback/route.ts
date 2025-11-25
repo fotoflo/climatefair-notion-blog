@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
+  const code = searchParams.get('code')
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
 
@@ -11,7 +12,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/admin/login?error=${error}`, request.url))
   }
 
-  // Create Supabase client to establish session
+  if (!code) {
+    console.log('Callback: no code parameter, redirecting to login')
+    return NextResponse.redirect(new URL('/admin/login?error=no-code', request.url))
+  }
+
+  // Create Supabase client with cookie handling
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,27 +27,30 @@ export async function GET(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  // Refresh the session
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  // Exchange the code for a session
+  const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
-  console.log('Callback: session refresh', {
-    hasUser: !!user,
-    email: user?.email,
-    error: userError?.message
+  console.log('Callback: code exchange result', {
+    hasSession: !!data.session,
+    hasUser: !!data.user,
+    userEmail: data.user?.email,
+    error: exchangeError?.message
   })
 
-  if (userError || !user) {
-    console.log('Callback: no user after OAuth, redirecting to login')
-    return NextResponse.redirect(new URL('/admin/login?error=no-session', request.url))
+  if (exchangeError || !data.session || !data.user) {
+    console.log('Callback: session exchange failed, redirecting to login')
+    return NextResponse.redirect(new URL('/admin/login?error=session-exchange-failed', request.url))
   }
 
   // Successful OAuth - redirect to dashboard
-  console.log('Callback: OAuth successful, redirecting to dashboard for user:', user.email)
+  console.log('Callback: OAuth successful, redirecting to dashboard for user:', data.user.email)
   return NextResponse.redirect(new URL('/admin/dashboard', request.url))
 }
