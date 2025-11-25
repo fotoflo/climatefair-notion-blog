@@ -109,13 +109,23 @@ async function getCacheFromStorage(): Promise<CachedRouteLookup | null> {
 }
 
 async function setCacheInStorage(cacheData: CachedRouteLookup): Promise<void> {
-  if (edgeConfigClient && isProduction && process.env.EDGE_CONFIG_ACCESS_TOKEN) {
+  if (edgeConfigClient && isProduction && process.env.EDGE_CONFIG) {
     try {
+      // Parse EDGE_CONFIG URL to extract config ID and token
+      // Format: https://edge-config.vercel.com/{config-id}?token={access-token}
+      const url = new URL(process.env.EDGE_CONFIG);
+      const configId = url.pathname.slice(1); // Remove leading slash
+      const accessToken = url.searchParams.get('token');
+
+      if (!configId || !accessToken) {
+        throw new Error('Invalid EDGE_CONFIG URL format');
+      }
+
       // Use REST API to update Edge Config (since client is read-only)
-      const response = await fetch(`https://api.vercel.com/v1/edge-config/${process.env.EDGE_CONFIG_ID}/items`, {
+      const response = await fetch(`https://api.vercel.com/v1/edge-config/${configId}/items`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${process.env.EDGE_CONFIG_ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
