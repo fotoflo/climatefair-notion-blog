@@ -217,9 +217,19 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
   for (const post of posts) {
     try {
       const postDetails = await getPostFromNotion(post.id);
+      console.log(`Processing post ${post.id}:`, {
+        title: postDetails?.title,
+        firstSlash: postDetails?.firstSlash,
+        postTitle: postDetails?.postTitle,
+        hasBoth: !!(postDetails?.firstSlash && postDetails?.postTitle)
+      });
+
       if (postDetails?.firstSlash && postDetails?.postTitle) {
         const routeKey = `${postDetails.firstSlash}/${postDetails.postTitle}`;
         lookup[routeKey] = post.id;
+        console.log(`Added route: ${routeKey} -> ${post.id}`);
+      } else {
+        console.log(`Skipping post ${post.id} - missing firstSlash or postTitle`);
       }
     } catch (error) {
       console.error(
@@ -329,12 +339,6 @@ export async function fetchPublishedPosts() {
             contains: "Published Blog Post",
           },
         },
-        {
-          property: "Work Tags",
-          multi_select: {
-            contains: "ClimateFair",
-          },
-        },
       ],
     },
     sorts: [
@@ -345,6 +349,7 @@ export async function fetchPublishedPosts() {
     ],
   });
 
+  console.log(`Found ${posts.results.length} published posts`);
   return posts.results as PageObjectResponse[];
 }
 
@@ -373,11 +378,21 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
 
     // Use post-title field as the primary title source
     let titleText = properties["post-title"]?.rich_text?.[0]?.plain_text || "";
+    console.log(`Post ${pageId} title extraction:`, {
+      postTitleField: properties["post-title"],
+      titleText: titleText,
+      hasTitle: !!titleText
+    });
 
     // If no post-title, fall back to title properties (for backward compatibility)
     if (!titleText) {
       let titleProperty = null;
-      const titlePropertyNames = ["Project name", "Title", "Name", "Post Title"];
+      const titlePropertyNames = [
+        "Project name",
+        "Title",
+        "Name",
+        "Post Title",
+      ];
 
       for (const propName of titlePropertyNames) {
         if (
@@ -453,6 +468,14 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
       postTitle: properties["post-title"]?.rich_text?.[0]?.plain_text
         ? slugifyPostTitle(properties["post-title"].rich_text[0].plain_text)
         : undefined,
+
+    console.log(`Post ${pageId} routing fields:`, {
+      firstSlash: properties["firstSlash"]?.rich_text?.[0]?.plain_text,
+      postTitleRaw: properties["post-title"]?.rich_text?.[0]?.plain_text,
+      postTitleSlugified: properties["post-title"]?.rich_text?.[0]?.plain_text
+        ? slugifyPostTitle(properties["post-title"].rich_text[0].plain_text)
+        : undefined
+    });
     };
 
     return post;
