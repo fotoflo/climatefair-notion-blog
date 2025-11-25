@@ -37,7 +37,7 @@ export const getCanonicalPostUrl = (post: { slug: string; firstSlash?: string; p
     return `${SITE_URL}/${post.firstSlash}/${post.postTitle}`;
   }
   // Fallback to traditional blog URL
-  return getCanonicalUrl(`/blog/${post.slug}`);
+  return getCanonicalUrl(`/${post.slug}`);
 };
 
 /**
