@@ -2,6 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const url = request.nextUrl
+  console.log('Middleware: processing', url.pathname)
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -28,7 +31,13 @@ export async function middleware(request: NextRequest) {
   )
 
   // This will refresh session if expired - required for Server Components
-  await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  console.log('Middleware: user refresh result', {
+    hasUser: !!user,
+    email: user?.email,
+    error: error?.message,
+    path: url.pathname
+  })
 
   return supabaseResponse
 }

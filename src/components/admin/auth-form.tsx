@@ -13,11 +13,14 @@ export function AuthForm() {
     setIsLoading(true)
     setError(null)
 
+    const redirectUrl = `${window.location.origin}/admin/auth/callback`
+    console.log('Auth: Starting Google OAuth with redirect to:', redirectUrl)
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin/dashboard`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -26,11 +29,13 @@ export function AuthForm() {
       })
 
       if (error) {
-        console.error('Error signing in:', error)
+        console.error('Auth: OAuth error:', error)
         setError('Failed to sign in with Google')
+      } else {
+        console.log('Auth: OAuth initiated successfully')
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Auth: Unexpected error:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)

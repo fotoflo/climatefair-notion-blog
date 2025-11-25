@@ -10,11 +10,25 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
   const supabase = await createClient()
   const params = await searchParams
 
+  // Check session first
+  const { data: sessionData } = await supabase.auth.getSession()
+  console.log('Login: session check', {
+    hasSession: !!sessionData.session,
+    userFromSession: sessionData.session?.user?.email
+  })
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
+  console.log('Login: user check', {
+    user: !!user,
+    email: user?.email,
+    error: params.error
+  })
+
   if (user) {
+    console.log('Login: user found, redirecting to dashboard')
     redirect('/admin/dashboard')
   }
 

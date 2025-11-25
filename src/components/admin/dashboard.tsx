@@ -22,6 +22,8 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClient()
 
+  console.log('Dashboard component: user received', { email: user?.email, id: user?.id })
+
   const signOut = async () => {
     setIsLoading(true)
     try {
