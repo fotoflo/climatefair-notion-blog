@@ -51,3 +51,5 @@ next-env.d.ts
 
 # temporary files
 /public/temp
+
+/src/generated/prisma
