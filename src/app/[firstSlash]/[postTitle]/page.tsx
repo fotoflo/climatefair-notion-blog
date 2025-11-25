@@ -133,7 +133,7 @@ export default async function RoutePage({ params }: RoutePageProps) {
     },
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": getCanonicalPostUrl(post.slug),
+      "@id": getCanonicalPostUrl(post),
     },
   };
 

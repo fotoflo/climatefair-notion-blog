@@ -140,7 +140,7 @@ export default async function PostPage({ params }: PostPageProps) {
     },
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": getCanonicalPostUrl(post.slug),
+      "@id": getCanonicalPostUrl(post),
     },
   };
 

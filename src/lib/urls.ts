@@ -42,5 +42,6 @@ export const getCanonicalPostUrl = (post: { slug: string; firstSlash?: string; p
 
 /**
  * Get the blog index canonical URL
+ * For sitemap purposes, this should point to the actual blog index URL
  */
-export const getBlogIndexUrl = (): string => getCanonicalUrl();
+export const getBlogIndexUrl = (): string => `${SITE_URL}/blog`;
