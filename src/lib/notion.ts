@@ -38,6 +38,18 @@ function extractFirstImage(content: string): string | null {
   return null;
 }
 
+// Sanitize and slugify text for URL routing
+function slugifyPostTitle(title: string): string {
+  return title
+    .toLowerCase()
+    // Replace spaces and special characters with hyphens
+    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .trim();
+}
+
 // Timing utility for measuring API latency
 export function measureApiLatency<T>(
   operation: () => Promise<T>,
@@ -52,9 +64,9 @@ export function measureApiLatency<T>(
   });
 }
 
-// Lookup cache for firstSlash/secondSlash routing
+// Lookup cache for firstSlash/postTitle routing
 interface RouteLookup {
-  [key: string]: string; // "firstSlash/secondSlash" -> pageId
+  [key: string]: string; // "firstSlash/postTitle" -> pageId
 }
 
 interface CachedRouteLookup {
@@ -186,8 +198,8 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
   for (const post of posts) {
     try {
       const postDetails = await getPostFromNotion(post.id);
-      if (postDetails?.firstSlash && postDetails?.secondSlash) {
-        const routeKey = `${postDetails.firstSlash}/${postDetails.secondSlash}`;
+      if (postDetails?.firstSlash && postDetails?.postTitle) {
+        const routeKey = `${postDetails.firstSlash}/${postDetails.postTitle}`;
         lookup[routeKey] = post.id;
       }
     } catch (error) {
@@ -211,9 +223,9 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
   return lookup;
 }
 
-export async function getPostByRoute(firstSlash: string, secondSlash: string): Promise<Post | null> {
+export async function getPostByRoute(firstSlash: string, postTitle: string): Promise<Post | null> {
   const lookup = await getRouteLookupMap();
-  const routeKey = `${firstSlash}/${secondSlash}`;
+  const routeKey = `${firstSlash}/${postTitle}`;
   const pageId = lookup[routeKey];
 
   if (!pageId) {
@@ -238,7 +250,7 @@ export interface Post {
   tags?: string[];
   category?: string;
   firstSlash?: string;
-  secondSlash?: string;
+  postTitle?: string;
 }
 
 export async function getDatabaseStructure() {
@@ -406,7 +418,9 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
         [],
       category: undefined, // No category property
       firstSlash: properties["firstSlash"]?.rich_text?.[0]?.plain_text,
-      secondSlash: properties["secondSlash"]?.rich_text?.[0]?.plain_text,
+      postTitle: properties["post-title"]?.rich_text?.[0]?.plain_text
+        ? slugifyPostTitle(properties["post-title"].rich_text[0].plain_text)
+        : undefined,
     };
 
     return post;

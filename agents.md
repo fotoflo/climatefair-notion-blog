@@ -176,8 +176,8 @@ NODE_ENV=development                    # Environment
    - `Attach file` (Files) - Cover images for posts
    - `Assignees` (People) - Post authors
    - `createdBy` (People) - Alternative author source
-   - `firstSlash` (Text) - First part of nested URL path (e.g., "success-stories", "solutions", "urban-composting")
-   - `secondSlash` (Text) - Second part of nested URL path (e.g., "urban-composting", "bali-composters")
+   - `firstSlash` (Text) - First part of nested URL path (e.g., "success-stories", "solutions", "events")
+   - `post-title` (Text) - Post title for URL slug (automatically slugified, e.g., "urban-composting-initiative")
 
 3. **Database Template**:
    ```
@@ -261,7 +261,7 @@ interface NotionPage {
   "createdBy": { people: [{ name: string }] };                 // Author
   "Assignees": { people: [{ name: string }] };                 // Alternative author
   "firstSlash": { rich_text: [{ plain_text: string }] };       // First URL segment
-  "secondSlash": { rich_text: [{ plain_text: string }] };      // Second URL segment
+  "post-title": { rich_text: [{ plain_text: string }] };      // Post title (auto-slugified)
 }
 ```
 
@@ -1359,15 +1359,15 @@ describe('Route Lookup Cache', () => {
 })
 
 describe('Post Mapping', () => {
-  it('should include firstSlash and secondSlash in post object', () => {
+  it('should include firstSlash and post-title in post object', () => {
     const post = {
       id: 'test-id',
       title: 'Test Post',
       firstSlash: 'success-stories',
-      secondSlash: 'urban-composting',
+      post-title: 'urban-composting',
     }
     expect(post.firstSlash).toBe('success-stories')
-    expect(post.secondSlash).toBe('urban-composting')
+    expect(post.post-title).toBe('urban-composting')
   })
 })
 ```
@@ -1796,16 +1796,16 @@ getCanonicalPostUrl(slug) → `https://flexbike.app/blog/${slug}`
 
 ### Nested URL Routing System
 
-**Overview**: In addition to the standard slug-based routing (`/blog/[slug]`), the system now supports nested URL routing using `/{firstSlash}/{secondSlash}/` patterns. This enables more semantic and SEO-friendly URLs.
+**Overview**: In addition to the standard slug-based routing (`/blog/[slug]`), the system now supports nested URL routing using `/{firstSlash}/{post-title}/` patterns. This enables more semantic and SEO-friendly URLs.
 
 **Examples**:
-- `/success-stories/urban-composting` - Maps to a post with `firstSlash: "success-stories"` and `secondSlash: "urban-composting"`
-- `/solutions/urban-composting` - Maps to a post with `firstSlash: "solutions"` and `secondSlash: "urban-composting"`
-- `/urban-composting/bali-composters` - Maps to a post with `firstSlash: "urban-composting"` and `secondSlash: "bali-composters"`
+- `/success-stories/urban-composting-initiative` - Maps to a post with `firstSlash: "success-stories"` and `post-title: "Urban Composting Initiative"` (auto-slugified)
+- `/solutions/climate-action-program` - Maps to a post with `firstSlash: "solutions"` and `post-title: "Climate Action Program"` (auto-slugified)
+- `/events/2024-sustainability-summit` - Maps to a post with `firstSlash: "events"` and `post-title: "2024 Sustainability Summit"` (auto-slugified)
 
 **CMS Configuration**:
 1. Add `firstSlash` (Text) property to your Notion database
-2. Add `secondSlash` (Text) property to your Notion database
+2. Add `post-title` (Text) property to your Notion database
 3. Fill these fields for posts that should use nested routing
 4. Posts without these fields continue to work with the standard slug routing
 
@@ -1826,7 +1826,7 @@ getCanonicalPostUrl(slug) → `https://flexbike.app/blog/${slug}`
 # Test cache API on staging/production
 curl -X GET https://your-staging-domain.vercel.app/api/cache
 
-# Test a nested route (after adding firstSlash/secondSlash to a post)
+# Test a nested route (after adding firstSlash/post-title to a post)
 curl -I https://your-staging-domain.vercel.app/success-stories/urban-composting
 ```
 
