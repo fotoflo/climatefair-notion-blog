@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +20,30 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ user }: AdminDashboardProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [stats, setStats] = useState({
+    posts: 0,
+    views: '1.2K',
+    comments: 12
+  })
   const supabase = createClient()
+
+  // Load real statistics
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        // Fetch posts count from cache
+        const response = await fetch('/posts-cache.json')
+        if (response.ok) {
+          const posts = await response.json()
+          setStats(prev => ({ ...prev, posts: Array.isArray(posts) ? posts.length : 0 }))
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error)
+      }
+    }
+
+    loadStats()
+  }, [])
 
   console.log('Dashboard component: user received', { email: user?.email, id: user?.id })
 
@@ -59,7 +82,7 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
               <CardDescription>Manage your blog content</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-green-600">5</p>
+              <p className="text-2xl font-bold text-green-600">{stats.posts}</p>
               <p className="text-sm text-gray-600">Published posts</p>
             </CardContent>
           </Card>
@@ -70,8 +93,9 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
               <CardDescription>View site statistics</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-blue-600">1.2K</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.views}</p>
               <p className="text-sm text-gray-600">Page views this month</p>
+              <p className="text-xs text-gray-400 mt-1">Analytics tracking needed</p>
             </CardContent>
           </Card>
 
@@ -81,8 +105,9 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
               <CardDescription>Moderate user comments</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-yellow-600">12</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.comments}</p>
               <p className="text-sm text-gray-600">Pending approval</p>
+              <p className="text-xs text-gray-400 mt-1">Comment system needed</p>
             </CardContent>
           </Card>
         </div>
