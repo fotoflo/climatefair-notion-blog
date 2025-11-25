@@ -38,6 +38,184 @@ function extractFirstImage(content: string): string | null {
   return null;
 }
 
+// Timing utility for measuring API latency
+export function measureApiLatency<T>(
+  operation: () => Promise<T>,
+  operationName: string
+): Promise<T> {
+  const startTime = Date.now();
+  console.log(`[${operationName}] Starting operation...`);
+
+  return operation().finally(() => {
+    const duration = Date.now() - startTime;
+    console.log(`[${operationName}] Completed in ${duration}ms`);
+  });
+}
+
+// Lookup cache for firstSlash/secondSlash routing
+interface RouteLookup {
+  [key: string]: string; // "firstSlash/secondSlash" -> pageId
+}
+
+interface CachedRouteLookup {
+  lookup: RouteLookup;
+  lastUpdated: number;
+  entryCount: number;
+}
+
+let routeLookupCache: RouteLookup | null = null;
+let routeLookupLastUpdated: number = 0;
+const ROUTE_LOOKUP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
+// Environment detection for caching strategy
+const isProduction = process.env.NODE_ENV === 'production' ||
+                    process.env.VERCEL_ENV === 'production' ||
+                    process.env.VERCEL_ENV === 'preview';
+
+// Vercel Edge Config client (if available)
+let edgeConfigClient: any = null;
+try {
+  if (isProduction && process.env.EDGE_CONFIG) {
+    // Dynamic import for Vercel Edge Config
+    const { createClient } = require('@vercel/edge-config');
+    edgeConfigClient = createClient(process.env.EDGE_CONFIG);
+  }
+} catch (error) {
+  console.log('Vercel Edge Config not available, using file-based cache');
+}
+
+async function getCacheFromStorage(): Promise<CachedRouteLookup | null> {
+  if (edgeConfigClient && isProduction) {
+    try {
+      const cacheData = await edgeConfigClient.get('route-lookup-cache');
+      return cacheData || null;
+    } catch (error) {
+      console.error('Error reading from Vercel Edge Config:', error);
+      return null;
+    }
+  } else {
+    // File-based cache for development/local
+    const cachePath = path.join(process.cwd(), "route-lookup-cache.json");
+    if (fs.existsSync(cachePath)) {
+      try {
+        return JSON.parse(fs.readFileSync(cachePath, "utf-8"));
+      } catch (error) {
+        console.error("Error reading route lookup cache file:", error);
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+async function setCacheInStorage(cacheData: CachedRouteLookup): Promise<void> {
+  if (edgeConfigClient && isProduction && process.env.EDGE_CONFIG_ACCESS_TOKEN) {
+    try {
+      // Use REST API to update Edge Config (since client is read-only)
+      const response = await fetch(`https://api.vercel.com/v1/edge-config/${process.env.EDGE_CONFIG_ID}/items`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${process.env.EDGE_CONFIG_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: [{
+            key: 'route-lookup-cache',
+            value: cacheData,
+            description: `Route lookup cache - ${cacheData.entryCount} entries, updated ${new Date(cacheData.lastUpdated).toISOString()}`
+          }]
+        })
+      });
+
+      if (response.ok) {
+        console.log('Saved route lookup cache to Vercel Edge Config');
+      } else {
+        throw new Error(`Edge Config API error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error writing to Vercel Edge Config:', error);
+    }
+  } else {
+    // File-based cache for development/local
+    try {
+      const cachePath = path.join(process.cwd(), "route-lookup-cache.json");
+      fs.writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
+      console.log('Saved route lookup cache to file');
+    } catch (error) {
+      console.error("Error writing route lookup cache file:", error);
+    }
+  }
+}
+
+export async function getRouteLookupMap(): Promise<RouteLookup> {
+  const now = Date.now();
+
+  // Return in-memory cached version if still valid
+  if (routeLookupCache && (now - routeLookupLastUpdated) < ROUTE_LOOKUP_CACHE_TTL) {
+    return routeLookupCache;
+  }
+
+  // Try to load from persistent storage first
+  const cachedData = await getCacheFromStorage();
+  if (cachedData && (now - cachedData.lastUpdated) < ROUTE_LOOKUP_CACHE_TTL) {
+    routeLookupCache = cachedData.lookup;
+    routeLookupLastUpdated = cachedData.lastUpdated;
+    console.log(`Loaded route lookup from ${isProduction ? 'Vercel KV' : 'file'} cache (${cachedData.entryCount} entries)`);
+    return routeLookupCache;
+  }
+
+  // Fetch fresh data from Notion
+  console.log("Building fresh route lookup map from Notion...");
+  const posts = await measureApiLatency(
+    () => fetchPublishedPosts(),
+    "Fetch published posts for route lookup"
+  );
+
+  const lookup: RouteLookup = {};
+
+  for (const post of posts) {
+    try {
+      const postDetails = await getPostFromNotion(post.id);
+      if (postDetails?.firstSlash && postDetails?.secondSlash) {
+        const routeKey = `${postDetails.firstSlash}/${postDetails.secondSlash}`;
+        lookup[routeKey] = post.id;
+      }
+    } catch (error) {
+      console.error(`Error processing post ${post.id} for route lookup:`, error);
+    }
+  }
+
+  // Update in-memory cache
+  routeLookupCache = lookup;
+  routeLookupLastUpdated = now;
+
+  // Save to persistent storage
+  const cacheData: CachedRouteLookup = {
+    lookup,
+    lastUpdated: now,
+    entryCount: Object.keys(lookup).length
+  };
+  await setCacheInStorage(cacheData);
+
+  console.log(`Built fresh route lookup map with ${Object.keys(lookup).length} entries`);
+  return lookup;
+}
+
+export async function getPostByRoute(firstSlash: string, secondSlash: string): Promise<Post | null> {
+  const lookup = await getRouteLookupMap();
+  const routeKey = `${firstSlash}/${secondSlash}`;
+  const pageId = lookup[routeKey];
+
+  if (!pageId) {
+    return null;
+  }
+
+  return await measureApiLatency(
+    () => getPostFromNotion(pageId),
+    `Get post by route ${routeKey}`
+  );
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -49,6 +227,8 @@ export interface Post {
   author?: string;
   tags?: string[];
   category?: string;
+  firstSlash?: string;
+  secondSlash?: string;
 }
 
 export async function getDatabaseStructure() {
@@ -215,6 +395,8 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
         properties["Work Tags"]?.multi_select?.map((tag: any) => tag.name) ||
         [],
       category: undefined, // No category property
+      firstSlash: properties["firstSlash"]?.rich_text?.[0]?.plain_text,
+      secondSlash: properties["secondSlash"]?.rich_text?.[0]?.plain_text,
     };
 
     return post;
