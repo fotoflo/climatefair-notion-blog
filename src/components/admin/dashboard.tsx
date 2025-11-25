@@ -19,13 +19,11 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ user }: AdminDashboardProps) {
-  const [isLoading, setIsLoading] = useState(false)
   const [stats, setStats] = useState({
     posts: 0,
     views: '1.2K',
     comments: 12
   })
-  const supabase = createClient()
 
   // Load real statistics
   useEffect(() => {
@@ -45,35 +43,12 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
     loadStats()
   }, [])
 
-  console.log('Dashboard component: user received', { email: user?.email, id: user?.id })
-
-  const signOut = async () => {
-    setIsLoading(true)
-    try {
-      await supabase.auth.signOut()
-      window.location.href = '/admin/login'
-    } catch (error) {
-      console.error('Error signing out:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">ClimateFair Admin Dashboard</h1>
-            <p className="mt-2 text-gray-600">
-              Welcome back, {user.user_metadata?.full_name || <span data-email>{user.email}</span>}!
-            </p>
-            <p className="text-xs text-gray-500">Administrator Access</p>
-          </div>
-          <Button onClick={signOut} disabled={isLoading} variant="outline">
-            {isLoading ? 'Signing out...' : 'Sign Out'}
-          </Button>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Overview of your ClimateFair blog</p>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
@@ -140,7 +115,6 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
             </CardContent>
           </Card>
         </div>
-      </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { AdminLayout } from '@/components/admin/layout/admin-layout'
 import { AdminDashboard } from '@/components/admin/dashboard'
 
 export default async function AdminDashboardPage() {
@@ -40,7 +41,11 @@ export default async function AdminDashboardPage() {
   }
 
   console.log('Dashboard: access granted for', user.email)
-  return <AdminDashboard user={user} />
+  return (
+    <AdminLayout user={user}>
+      <AdminDashboard user={user} />
+    </AdminLayout>
+  )
 }
 
 export const metadata = {
