@@ -1,6 +1,6 @@
 /**
  * URL helpers for the ClimateFair blog
- * With basePath: "/blog" and assetPrefix: "/blog-build", all URLs are prefixed accordingly
+ * Supports both traditional /blog routes and new nested /{firstSlash}/{postTitle} routes
  */
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://climatefair.co";
@@ -16,17 +16,29 @@ export const getCanonicalUrl = (path: string = ""): string => {
 
 /**
  * Get internal href for post links (used in <Link> components)
- * With basePath: "/blog", internal links should be relative - Next.js handles the prefix automatically
+ * Prefers nested routes /{firstSlash}/{postTitle} when available, falls back to /blog/{slug}
  */
-export const getInternalPostHref = (slug: string): string => {
-  return `/blog/${slug}`;
+export const getInternalPostHref = (post: { slug: string; firstSlash?: string; postTitle?: string }): string => {
+  // Use nested route if both firstSlash and postTitle are available
+  if (post.firstSlash && post.postTitle) {
+    return `/${post.firstSlash}/${post.postTitle}`;
+  }
+  // Fallback to traditional blog route
+  return `/blog/${post.slug}`;
 };
 
 /**
  * Get canonical URL for a specific post
+ * Uses nested route as canonical when available
  */
-export const getCanonicalPostUrl = (slug: string): string =>
-  getCanonicalUrl(`/blog/${slug}`);
+export const getCanonicalPostUrl = (post: { slug: string; firstSlash?: string; postTitle?: string }): string => {
+  // Use nested route as canonical if available
+  if (post.firstSlash && post.postTitle) {
+    return `${SITE_URL}/${post.firstSlash}/${post.postTitle}`;
+  }
+  // Fallback to traditional blog URL
+  return getCanonicalUrl(`/blog/${post.slug}`);
+};
 
 /**
  * Get the blog index canonical URL

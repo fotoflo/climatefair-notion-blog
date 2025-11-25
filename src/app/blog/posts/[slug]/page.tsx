@@ -1,13 +1,13 @@
 import { getPostsFromCache, getWordCount } from "@/lib/notion";
 import { format } from "date-fns";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
 import ReactMarkdown from "react-markdown";
 import { ResolvingMetadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { calculateReadingTime } from "@/lib/utils";
-import { getCanonicalPostUrl } from "@/lib/urls";
+import { getCanonicalPostUrl, getInternalPostHref } from "@/lib/urls";
 import { components } from "@/components/mdx-component";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -62,13 +62,13 @@ export async function generateMetadata(
     title: post.title,
     description: post.description,
     alternates: {
-      canonical: getCanonicalPostUrl(post.slug),
+      canonical: getCanonicalPostUrl(post),
     },
     openGraph: {
       title: post.title,
       description: post.description,
       type: "article",
-      url: getCanonicalPostUrl(post.slug),
+      url: getCanonicalPostUrl(post),
       publishedTime: new Date(post.date).toISOString(),
       authors: post.author ? [post.author] : [],
       tags: post.tags,
@@ -103,6 +103,11 @@ export default async function PostPage({ params }: PostPageProps) {
 
   if (!post) {
     notFound();
+  }
+
+  // If post has nested routing, redirect to canonical URL
+  if (post.firstSlash && post.postTitle) {
+    redirect(getInternalPostHref(post));
   }
 
   // Use the same OG image logic for structured data

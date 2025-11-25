@@ -61,13 +61,13 @@ export async function generateMetadata(
     title: post.title,
     description: post.description,
     alternates: {
-      canonical: getCanonicalPostUrl(post.slug),
+      canonical: getCanonicalPostUrl(post),
     },
     openGraph: {
       title: post.title,
       description: post.description,
       type: "article",
-      url: getCanonicalPostUrl(post.slug),
+      url: getCanonicalPostUrl(post),
       publishedTime: new Date(post.date).toISOString(),
       authors: post.author ? [post.author] : [],
       tags: post.tags,

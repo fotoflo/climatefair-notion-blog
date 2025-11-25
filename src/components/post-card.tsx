@@ -35,7 +35,7 @@ export default function PostCard({ post }: PostCardProps) {
   return (
     <Card className="group relative pt-0 overflow-hidden hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Link
-        href={getInternalPostHref(post.slug)}
+        href={getInternalPostHref(post)}
         className="absolute inset-0 z-10"
         aria-label={post.title}
       />
