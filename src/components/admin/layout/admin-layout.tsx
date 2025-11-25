@@ -23,6 +23,12 @@ const adminNavItems = [
     description: 'Manage blog posts'
   },
   {
+    title: 'Routes',
+    href: '/admin/manage-routes',
+    icon: FileText,
+    description: 'Manage URL routes'
+  },
+  {
     title: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,

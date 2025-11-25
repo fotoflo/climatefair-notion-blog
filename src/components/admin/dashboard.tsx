@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 interface User {
   id: string
@@ -22,7 +24,8 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
   const [stats, setStats] = useState({
     posts: 0,
     views: '1.2K',
-    comments: 12
+    comments: 12,
+    firstSlashes: [] as string[]
   })
 
   // Load real statistics
@@ -33,7 +36,18 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
         const response = await fetch('/posts-cache.json')
         if (response.ok) {
           const posts = await response.json()
-          setStats(prev => ({ ...prev, posts: Array.isArray(posts) ? posts.length : 0 }))
+          const postCount = Array.isArray(posts) ? posts.length : 0
+
+          // Collect unique firstSlash values
+          const firstSlashes = Array.isArray(posts)
+            ? [...new Set(posts.map((post: any) => post.firstSlash).filter(Boolean))]
+            : []
+
+          setStats(prev => ({
+            ...prev,
+            posts: postCount,
+            firstSlashes
+          }))
         }
       } catch (error) {
         console.error('Error loading stats:', error)
@@ -85,6 +99,42 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
               <p className="text-xs text-gray-400 mt-1">Comment system needed</p>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Route Management</CardTitle>
+              <CardDescription>Manage your nested URL routes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Active Route Categories</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.firstSlashes.length}</p>
+                  </div>
+                  <Link href="/admin/manage-routes">
+                    <Button variant="outline" size="sm">
+                      Manage Routes
+                    </Button>
+                  </Link>
+                </div>
+
+                {stats.firstSlashes.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">Categories:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {stats.firstSlashes.map((firstSlash) => (
+                        <Link key={firstSlash} href={`/admin/manage-routes/${firstSlash}`}>
+                          <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200">
+                            /{firstSlash}
+                          </Badge>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
         </div>
 
         <div className="mt-8">
