@@ -165,9 +165,10 @@ NODE_ENV=development                    # Environment
 2. **Configure Database Properties**:
 
    **Required Properties**:
-   - `Project name` (Title) - This becomes the blog post title
+   - `Project name` (Title) - Internal Notion organization (e.g., "Post-123")
+   - `post-title` (Text) - Blog post display title (what users see)
    - `Status` (Status) - Must include "Done" option for published posts
-   - `Work Tags` (Multi-select) - Must include "Published Blog Post" tag
+   - `Work Tags` (Multi-select) - Must include "Published Blog Post" and "ClimateFair"
 
    **Optional but Recommended Properties**:
    - `End date` (Date) - Publication date (preferred over Start date)
@@ -181,13 +182,15 @@ NODE_ENV=development                    # Environment
 
 3. **Database Template**:
    ```
-   Project name: [Blog Post Title Here]
+   Project name: [Internal Notion Title - e.g., "Post-123"]
+   post-title: [Blog Post Display Title - e.g., "Urban Composting Initiative"]
    Status: Done ✅
-   Work Tags: Published Blog Post, [Category Tags]
-   End date: [Publication Date]
+   Work Tags: Published Blog Post, ClimateFair, [Category Tags]
+   createdAt: [Publication Date]
    Prioritization Note: [Brief description, max 280 chars]
    Attach file: [Cover image]
    Assignees: [Author name]
+   firstSlash: [URL category - e.g., "success-stories"]
    ```
 
 ### Step 3: Share Database with Integration
@@ -280,16 +283,23 @@ interface NotionPage {
 
 **Content Writing Tips**:
 
-1. **Titles**: Keep under 60 characters for SEO
-2. **Descriptions**: Write compelling 150-280 character summaries
-3. **Headings**: Use H2, H3 for structure (H1 reserved for title)
-4. **Images**: Upload high-quality images, add alt text in Notion
-5. **Links**: Use descriptive link text, not "click here"
-6. **Code**: Use code blocks with language specification
+1. **Titles**: Fill `post-title` with readable titles under 60 characters for SEO
+2. **Project names**: Use `Project name` for internal organization (e.g., "Post-123")
+3. **Descriptions**: Write compelling 150-280 character summaries in `Prioritization Note`
+4. **Headings**: Use H2, H3 for structure (H1 reserved for title)
+5. **Images**: Upload high-quality images, add alt text in Notion
+6. **Links**: Use descriptive link text, not "click here"
+7. **Code**: Use code blocks with language specification
 
 **Example Post Structure**:
 ```
-# Main Title (in Project name field)
+Project name: Post-001 (internal organization)
+post-title: Urban Composting Initiative (display title)
+firstSlash: success-stories
+Status: Done ✅
+Work Tags: Published Blog Post, ClimateFair
+
+# Urban Composting Initiative
 
 Brief description in Prioritization Note field...
 

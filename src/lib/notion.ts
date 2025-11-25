@@ -40,14 +40,16 @@ function extractFirstImage(content: string): string | null {
 
 // Sanitize and slugify text for URL routing
 function slugifyPostTitle(title: string): string {
-  return title
-    .toLowerCase()
-    // Replace spaces and special characters with hyphens
-    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-    .trim();
+  return (
+    title
+      .toLowerCase()
+      // Replace spaces and special characters with hyphens
+      .replace(/[^\w\s-]/g, "") // Remove special characters except hyphens and spaces
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
+      .trim()
+  );
 }
 
 // Timing utility for measuring API latency
@@ -80,29 +82,30 @@ let routeLookupLastUpdated: number = 0;
 const ROUTE_LOOKUP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 // Environment detection for caching strategy
-const isProduction = process.env.NODE_ENV === 'production' ||
-                    process.env.VERCEL_ENV === 'production' ||
-                    process.env.VERCEL_ENV === 'preview';
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.VERCEL_ENV === "production" ||
+  process.env.VERCEL_ENV === "preview";
 
 // Vercel Edge Config client (if available)
 let edgeConfigClient: any = null;
 try {
   if (isProduction && process.env.EDGE_CONFIG) {
     // Dynamic import for Vercel Edge Config
-    const { createClient } = require('@vercel/edge-config');
+    const { createClient } = require("@vercel/edge-config");
     edgeConfigClient = createClient(process.env.EDGE_CONFIG);
   }
 } catch (error) {
-  console.log('Vercel Edge Config not available, using file-based cache');
+  console.log("Vercel Edge Config not available, using file-based cache");
 }
 
 async function getCacheFromStorage(): Promise<CachedRouteLookup | null> {
   if (edgeConfigClient && isProduction) {
     try {
-      const cacheData = await edgeConfigClient.get('route-lookup-cache');
+      const cacheData = await edgeConfigClient.get("route-lookup-cache");
       return cacheData || null;
     } catch (error) {
-      console.error('Error reading from Vercel Edge Config:', error);
+      console.error("Error reading from Vercel Edge Config:", error);
       return null;
     }
   } else {
@@ -127,42 +130,51 @@ async function setCacheInStorage(cacheData: CachedRouteLookup): Promise<void> {
       // Format: https://edge-config.vercel.com/{config-id}?token={access-token}
       const url = new URL(process.env.EDGE_CONFIG);
       const configId = url.pathname.slice(1); // Remove leading slash
-      const accessToken = url.searchParams.get('token');
+      const accessToken = url.searchParams.get("token");
 
       if (!configId || !accessToken) {
-        throw new Error('Invalid EDGE_CONFIG URL format');
+        throw new Error("Invalid EDGE_CONFIG URL format");
       }
 
       // Use REST API to update Edge Config (since client is read-only)
-      const response = await fetch(`https://api.vercel.com/v1/edge-config/${configId}/items`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: [{
-            key: 'route-lookup-cache',
-            value: cacheData,
-            description: `Route lookup cache - ${cacheData.entryCount} entries, updated ${new Date(cacheData.lastUpdated).toISOString()}`
-          }]
-        })
-      });
+      const response = await fetch(
+        `https://api.vercel.com/v1/edge-config/${configId}/items`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: [
+              {
+                key: "route-lookup-cache",
+                value: cacheData,
+                description: `Route lookup cache - ${
+                  cacheData.entryCount
+                } entries, updated ${new Date(
+                  cacheData.lastUpdated
+                ).toISOString()}`,
+              },
+            ],
+          }),
+        }
+      );
 
       if (response.ok) {
-        console.log('Saved route lookup cache to Vercel Edge Config');
+        console.log("Saved route lookup cache to Vercel Edge Config");
       } else {
         throw new Error(`Edge Config API error: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error writing to Vercel Edge Config:', error);
+      console.error("Error writing to Vercel Edge Config:", error);
     }
   } else {
     // File-based cache for development/local
     try {
       const cachePath = path.join(process.cwd(), "route-lookup-cache.json");
       fs.writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
-      console.log('Saved route lookup cache to file');
+      console.log("Saved route lookup cache to file");
     } catch (error) {
       console.error("Error writing route lookup cache file:", error);
     }
@@ -173,16 +185,23 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
   const now = Date.now();
 
   // Return in-memory cached version if still valid
-  if (routeLookupCache && (now - routeLookupLastUpdated) < ROUTE_LOOKUP_CACHE_TTL) {
+  if (
+    routeLookupCache &&
+    now - routeLookupLastUpdated < ROUTE_LOOKUP_CACHE_TTL
+  ) {
     return routeLookupCache;
   }
 
   // Try to load from persistent storage first
   const cachedData = await getCacheFromStorage();
-  if (cachedData && (now - cachedData.lastUpdated) < ROUTE_LOOKUP_CACHE_TTL) {
+  if (cachedData && now - cachedData.lastUpdated < ROUTE_LOOKUP_CACHE_TTL) {
     routeLookupCache = cachedData.lookup;
     routeLookupLastUpdated = cachedData.lastUpdated;
-    console.log(`Loaded route lookup from ${isProduction ? 'Vercel KV' : 'file'} cache (${cachedData.entryCount} entries)`);
+    console.log(
+      `Loaded route lookup from ${isProduction ? "Vercel KV" : "file"} cache (${
+        cachedData.entryCount
+      } entries)`
+    );
     return routeLookupCache;
   }
 
@@ -203,7 +222,10 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
         lookup[routeKey] = post.id;
       }
     } catch (error) {
-      console.error(`Error processing post ${post.id} for route lookup:`, error);
+      console.error(
+        `Error processing post ${post.id} for route lookup:`,
+        error
+      );
     }
   }
 
@@ -215,15 +237,20 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
   const cacheData: CachedRouteLookup = {
     lookup,
     lastUpdated: now,
-    entryCount: Object.keys(lookup).length
+    entryCount: Object.keys(lookup).length,
   };
   await setCacheInStorage(cacheData);
 
-  console.log(`Built fresh route lookup map with ${Object.keys(lookup).length} entries`);
+  console.log(
+    `Built fresh route lookup map with ${Object.keys(lookup).length} entries`
+  );
   return lookup;
 }
 
-export async function getPostByRoute(firstSlash: string, postTitle: string): Promise<Post | null> {
+export async function getPostByRoute(
+  firstSlash: string,
+  postTitle: string
+): Promise<Post | null> {
   const lookup = await getRouteLookupMap();
   const routeKey = `${firstSlash}/${postTitle}`;
   const pageId = lookup[routeKey];
@@ -344,37 +371,42 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
         ? markdownResult
         : markdownResult?.parent || "";
 
-    // Find the title property - try common names
-    let titleProperty = null;
-    const titlePropertyNames = ["Project name", "Title", "Name", "Post Title"];
+    // Use post-title field as the primary title source
+    let titleText = properties["post-title"]?.rich_text?.[0]?.plain_text || "";
 
-    for (const propName of titlePropertyNames) {
-      if (
-        properties[propName]?.type === "title" &&
-        properties[propName].title?.length > 0
-      ) {
-        titleProperty = properties[propName];
-        break;
-      }
-    }
+    // If no post-title, fall back to title properties (for backward compatibility)
+    if (!titleText) {
+      let titleProperty = null;
+      const titlePropertyNames = ["Project name", "Title", "Name", "Post Title"];
 
-    // If no title property found, log available properties for debugging
-    if (!titleProperty) {
-      console.warn(
-        `No title property found for page ${pageId}. Available properties:`,
-        Object.keys(properties)
-      );
-      // Try to find any title-type property
-      for (const [key, value] of Object.entries(properties)) {
-        if ((value as any)?.type === "title") {
-          titleProperty = value;
-          console.warn(`Using property "${key}" as title`);
+      for (const propName of titlePropertyNames) {
+        if (
+          properties[propName]?.type === "title" &&
+          properties[propName].title?.length > 0
+        ) {
+          titleProperty = properties[propName];
           break;
         }
       }
-    }
 
-    const titleText = titleProperty?.title?.[0]?.plain_text || "Untitled";
+      // If no title property found, log available properties for debugging
+      if (!titleProperty) {
+        console.warn(
+          `No title property found for page ${pageId}. Available properties:`,
+          Object.keys(properties)
+        );
+        // Try to find any title-type property
+        for (const [key, value] of Object.entries(properties)) {
+          if ((value as any)?.type === "title") {
+            titleProperty = value;
+            console.warn(`Using property "${key}" as title`);
+            break;
+          }
+        }
+      }
+
+      titleText = titleProperty?.title?.[0]?.plain_text || "Untitled";
+    }
 
     // Use Prioritization Note as description if available, otherwise first paragraph
     const prioritizationNote =
