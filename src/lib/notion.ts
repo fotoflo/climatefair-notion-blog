@@ -181,7 +181,7 @@ async function setCacheInStorage(cacheData: CachedRouteLookup): Promise<void> {
   }
 }
 
-export async function getRouteLookupMap(): Promise<RouteLookup> {
+export async function getRouteLookupMap(force = false): Promise<RouteLookup> {
   const now = Date.now();
 
   // Return in-memory cached version if still valid
@@ -192,9 +192,13 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
     return routeLookupCache;
   }
 
-  // Try to load from persistent storage first
+  // Try to load from persistent storage first (unless force is true)
   const cachedData = await getCacheFromStorage();
-  if (cachedData && now - cachedData.lastUpdated < ROUTE_LOOKUP_CACHE_TTL) {
+  if (
+    !force &&
+    cachedData &&
+    now - cachedData.lastUpdated < ROUTE_LOOKUP_CACHE_TTL
+  ) {
     routeLookupCache = cachedData.lookup;
     routeLookupLastUpdated = cachedData.lastUpdated;
     console.log(
@@ -207,29 +211,16 @@ export async function getRouteLookupMap(): Promise<RouteLookup> {
 
   // Fetch fresh data from Notion
   console.log("Building fresh route lookup map from Notion...");
-  const posts = await measureApiLatency(
-    () => fetchPublishedPosts(),
-    "Fetch published posts for route lookup"
-  );
+  const posts = await fetchPublishedPosts();
 
   const lookup: RouteLookup = {};
 
   for (const post of posts) {
     try {
       const postDetails = await getPostFromNotion(post.id);
-      console.log(`Processing post ${post.id}:`, {
-        title: postDetails?.title,
-        firstSlash: postDetails?.firstSlash,
-        postTitle: postDetails?.postTitle,
-        hasBoth: !!(postDetails?.firstSlash && postDetails?.postTitle)
-      });
-
       if (postDetails?.firstSlash && postDetails?.postTitle) {
         const routeKey = `${postDetails.firstSlash}/${postDetails.postTitle}`;
         lookup[routeKey] = post.id;
-        console.log(`Added route: ${routeKey} -> ${post.id}`);
-      } else {
-        console.log(`Skipping post ${post.id} - missing firstSlash or postTitle`);
       }
     } catch (error) {
       console.error(
@@ -334,10 +325,20 @@ export async function fetchPublishedPosts() {
           },
         },
         {
-          property: "Work Tags",
-          multi_select: {
-            contains: "Published Blog Post",
-          },
+          or: [
+            {
+              property: "Work Tags",
+              multi_select: {
+                contains: "Published Blog Post",
+              },
+            },
+            {
+              property: "Work Tags",
+              multi_select: {
+                contains: "ClimateFair",
+              },
+            },
+          ],
         },
       ],
     },
@@ -349,7 +350,6 @@ export async function fetchPublishedPosts() {
     ],
   });
 
-  console.log(`Found ${posts.results.length} published posts`);
   return posts.results as PageObjectResponse[];
 }
 
@@ -376,13 +376,8 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
         ? markdownResult
         : markdownResult?.parent || "";
 
-    // Use post-title field as the primary title source
-    let titleText = properties["post-title"]?.rich_text?.[0]?.plain_text || "";
-    console.log(`Post ${pageId} title extraction:`, {
-      postTitleField: properties["post-title"],
-      titleText: titleText,
-      hasTitle: !!titleText
-    });
+    // Use post-title field as the primary title source (it's a title field, not rich_text)
+    let titleText = properties["post-title"]?.title?.[0]?.plain_text || "";
 
     // If no post-title, fall back to title properties (for backward compatibility)
     if (!titleText) {
@@ -464,18 +459,10 @@ export async function getPostFromNotion(pageId: string): Promise<Post | null> {
         properties["Work Tags"]?.multi_select?.map((tag: any) => tag.name) ||
         [],
       category: undefined, // No category property
-      firstSlash: properties["firstSlash"]?.rich_text?.[0]?.plain_text,
-      postTitle: properties["post-title"]?.rich_text?.[0]?.plain_text
-        ? slugifyPostTitle(properties["post-title"].rich_text[0].plain_text)
+      firstSlash: properties["firstSlash"]?.select?.name,
+      postTitle: properties["post-title"]?.title?.[0]?.plain_text
+        ? slugifyPostTitle(properties["post-title"].title[0].plain_text)
         : undefined,
-
-    console.log(`Post ${pageId} routing fields:`, {
-      firstSlash: properties["firstSlash"]?.rich_text?.[0]?.plain_text,
-      postTitleRaw: properties["post-title"]?.rich_text?.[0]?.plain_text,
-      postTitleSlugified: properties["post-title"]?.rich_text?.[0]?.plain_text
-        ? slugifyPostTitle(properties["post-title"].rich_text[0].plain_text)
-        : undefined
-    });
     };
 
     return post;

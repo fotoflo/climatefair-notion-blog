@@ -1,5 +1,7 @@
 {
-  "lookup": {},
-  "lastUpdated": 1764095270529,
-  "entryCount": 0
+  "lookup": {
+    "test/big-apple-compost": "2b5c4096-5925-80a4-9090-d94e8bbf07ae"
+  },
+  "lastUpdated": 1764101286038,
+  "entryCount": 1
 }
