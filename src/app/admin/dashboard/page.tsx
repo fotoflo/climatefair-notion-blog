@@ -13,6 +13,13 @@ export default async function AdminDashboardPage() {
     redirect('/admin/login')
   }
 
+  // Validate email - only allow fotoflo@gmail.com
+  if (user.email !== 'fotoflo@gmail.com') {
+    // Sign out unauthorized user and redirect to login
+    await supabase.auth.signOut()
+    redirect('/admin/login?error=unauthorized')
+  }
+
   return <AdminDashboard user={user} />
 }
 

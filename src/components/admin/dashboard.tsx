@@ -34,22 +34,6 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
     }
   }
 
-  // Only allow fotoflo@gmail.com
-  if (user.email !== 'fotoflo@gmail.com') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8 text-center">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            Access denied. Only authorized administrators can access this dashboard.
-          </div>
-          <Button onClick={signOut} variant="outline">
-            Sign Out
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
