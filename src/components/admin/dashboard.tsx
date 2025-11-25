@@ -42,7 +42,9 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">ClimateFair Admin Dashboard</h1>
-            <p className="mt-2 text-gray-600">Welcome back, {user.user_metadata?.full_name || user.email}!</p>
+            <p className="mt-2 text-gray-600">
+              Welcome back, {user.user_metadata?.full_name || <span data-email>{user.email}</span>}!
+            </p>
             <p className="text-xs text-gray-500">Administrator Access</p>
           </div>
           <Button onClick={signOut} disabled={isLoading} variant="outline">
@@ -103,7 +105,9 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
                 <div className="flex items-center space-x-4">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <div>
-                    <p className="text-sm font-medium">Administrator signed in: {user.email}</p>
+                    <p className="text-sm font-medium">
+                      Administrator signed in: <span data-email>{user.email}</span>
+                    </p>
                     <p className="text-xs text-gray-600">Just now</p>
                   </div>
                 </div>
