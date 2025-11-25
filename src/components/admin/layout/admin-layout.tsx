@@ -14,36 +14,43 @@ const adminNavItems = [
     title: 'Dashboard',
     href: '/admin/dashboard',
     icon: LayoutDashboard,
+    description: 'Overview and statistics'
   },
   {
     title: 'Posts',
     href: '/admin/posts',
     icon: FileText,
+    description: 'Manage blog posts'
   },
   {
     title: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,
+    description: 'View site analytics'
   },
   {
     title: 'Comments',
     href: '/admin/comments',
     icon: MessageSquare,
+    description: 'Moderate comments'
   },
   {
     title: 'Users',
     href: '/admin/users',
     icon: Users,
+    description: 'User management'
   },
   {
     title: 'Settings',
     href: '/admin/settings',
     icon: Settings,
+    description: 'System settings'
   },
   {
     title: 'Database',
     href: '/admin/database',
     icon: Database,
+    description: 'Database management'
   }
 ]
 
