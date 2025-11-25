@@ -5,7 +5,7 @@ import { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getPostsFromCache();
   const postUrls = posts.map((post: Post) => ({
-    url: getCanonicalPostUrl(post.slug),
+    url: getCanonicalPostUrl(post),
     lastModified: new Date(post.date),
     changeFrequency: "weekly" as const,
     priority: 0.8,
