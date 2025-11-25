@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/admin/login?error=no-code', request.url))
   }
 
+  // Create response for redirect
+  let response = NextResponse.redirect(new URL('/admin/dashboard', request.url))
+
   // Create Supabase client with cookie handling
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,9 +30,14 @@ export async function GET(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Set cookies on the response
+            if (options) {
+              response.cookies.set(name, value, options)
+            } else {
+              response.cookies.set(name, value)
+            }
+          })
         },
       },
     }
@@ -47,10 +55,11 @@ export async function GET(request: NextRequest) {
 
   if (exchangeError || !data.session || !data.user) {
     console.log('Callback: session exchange failed, redirecting to login')
-    return NextResponse.redirect(new URL('/admin/login?error=session-exchange-failed', request.url))
+    response = NextResponse.redirect(new URL('/admin/login?error=session-exchange-failed', request.url))
+    return response
   }
 
-  // Successful OAuth - redirect to dashboard
+  // Successful OAuth - redirect to dashboard with session cookies
   console.log('Callback: OAuth successful, redirecting to dashboard for user:', data.user.email)
-  return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+  return response
 }
