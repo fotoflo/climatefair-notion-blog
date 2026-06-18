@@ -61,6 +61,11 @@ async function cachePosts() {
       }
     }
 
+    // Download Notion images locally and rewrite URLs so the cached posts don't
+    // depend on Notion's signed S3 URLs (which expire ~1 hour after generation).
+    const { localizeImages } = await import("./localize-images");
+    await localizeImages(allPosts);
+
     const cachePath = path.join(process.cwd(), "posts-cache.json");
     fs.writeFileSync(cachePath, JSON.stringify(allPosts, null, 2));
 

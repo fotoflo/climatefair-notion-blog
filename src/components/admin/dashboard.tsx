@@ -135,6 +135,9 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
                     </div>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="mt-8">
